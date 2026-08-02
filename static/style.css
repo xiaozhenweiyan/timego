@@ -199,7 +199,7 @@ hr { border: none; border-top: 1px dashed #3a4048; margin: 6px 0; }
 /* ===== 回溯选择弹窗 ===== */
 .modal-overlay {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0,0,0,0.35);
   display: flex; align-items: center; justify-content: center;
   z-index: 1000;
 }

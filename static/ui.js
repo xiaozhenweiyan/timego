@@ -26,6 +26,8 @@
     this.onBoardClick = null;  // 由 script 注入
     this.btSelectedHand = null; // 回溯流程选中的母手索引
     this.btSelectedCoord = null; // 回溯母手坐标 (棋盘上紫色标记)
+    this.previewBoard = null;   // 回溯预览: 显示某手的历史局面
+    this.previewLabel = null;   // 预览横幅文字
 
     this._bindEvents();
   }
@@ -77,7 +79,8 @@
   // 主渲染
   TimeGoUI.prototype.render = function () {
     var ctx = this.ctx;
-    var board = this.engine.getBoardForView(this.engine.viewId) || this.engine.board;
+    // 回溯预览模式优先显示历史局面; 其次查看时间线; 最后活动棋盘
+    var board = this.previewBoard || this.engine.getBoardForView(this.engine.viewId) || this.engine.board;
     var W = this.canvas.width, H = this.canvas.height;
     ctx.fillStyle = '#e8c27a';
     ctx.fillRect(0, 0, W, H);
@@ -157,8 +160,8 @@
       ctx.stroke();
     }
 
-    // 悬停预览
-    if (this.hover && !this.engine.gameOver) {
+    // 悬停预览 (回溯预览模式下禁用, 因为显示的是历史局面)
+    if (this.hover && !this.engine.gameOver && !this.previewBoard) {
       var hc = board[this.hover.r][this.hover.c];
       if (!hc) {
         ctx.globalAlpha = 0.4;
@@ -183,6 +186,23 @@
       ctx.fillText('👁 查看时间线 #' + this.engine.viewId + '（落子仍在活动时间线 #' + this.engine.activeId + '）', 8, 13);
       ctx.textAlign = 'right';
       ctx.fillText('点右侧「返回活动时间线」', W - 8, 13);
+      ctx.textBaseline = 'alphabetic';
+    }
+
+    // 回溯预览横幅: 紫色边框 + 顶部横幅, 显示正在查看的历史局面
+    if (this.previewBoard) {
+      ctx.strokeStyle = '#b14dff';
+      ctx.lineWidth = 5;
+      ctx.strokeRect(2.5, 2.5, W - 5, H - 5);
+      ctx.fillStyle = 'rgba(177,77,255,0.95)';
+      ctx.fillRect(0, 0, W, 26);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 13px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('⏮ 回溯预览: ' + (this.previewLabel || '历史局面') + '（这是过去的样子）', 8, 13);
+      ctx.textAlign = 'right';
+      ctx.fillText('落子判定仍基于当前最新局面', W - 8, 13);
       ctx.textBaseline = 'alphabetic';
     }
   };

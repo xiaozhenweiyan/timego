@@ -145,9 +145,31 @@
     }
     if (!html) html = '<div class="hist-empty">该时间线尚无着手</div>';
     document.getElementById('bt-moves').innerHTML = html;
-    document.getElementById('bt-tip').textContent = '点击上方任意一手作为回溯母手';
+    document.getElementById('bt-tip').textContent = '悬停查看该手历史局面, 点击选中作为母手';
     document.getElementById('bt-modal').style.display = 'flex';
-    ui.setHint('回溯: 请在弹窗中选择一个你下过的手作为母手');
+    // 悬停某手时, 主棋盘实时预览该手落子后的历史局面
+    var nodes = document.getElementById('bt-moves').querySelectorAll('.bt-move');
+    for (var k = 0; k < nodes.length; k++) {
+      (function (node, idx) {
+        node.addEventListener('mouseenter', function () {
+          var m = engine.active.moves[idx];
+          if (m && m.boardAfter) {
+            ui.previewBoard = m.boardAfter;
+            ui.previewLabel = '第' + (idx + 1) + '手后的局面';
+            ui.refresh();
+          }
+        });
+        node.addEventListener('mouseleave', function () {
+          // 未选中母手时, 移开恢复当前局面
+          if (btHand === null) {
+            ui.previewBoard = null;
+            ui.previewLabel = null;
+            ui.refresh();
+          }
+        });
+      })(nodes[k], parseInt(nodes[k].getAttribute('data-idx'), 10));
+    }
+    ui.setHint('回溯: 悬停查看历史局面, 点击选中自己下过的手作为母手');
   }
 
   function closeBtModal() {
@@ -162,12 +184,14 @@
     if (m.color !== engine.player) { document.getElementById('bt-tip').textContent = '只能回溯自己下过的手'; return; }
     if (m.isLocked) { document.getElementById('bt-tip').textContent = '该手已锁定, 不可回溯'; return; }
     btHand = idx;
-    // 选中后关闭弹窗, 进入目标选择模式
+    // 选中后关闭弹窗, 进入目标选择模式; 保持显示该手的历史局面
     closeBtModal();
     mode = 'bt-select-target';
     ui.btSelectedCoord = m.coord ? { r: m.coord.r, c: m.coord.c } : null;
+    ui.previewBoard = m.boardAfter;
+    ui.previewLabel = '第' + (idx + 1) + '手后的局面（回溯到这里）';
     ui.refresh();
-    ui.setHint('已选第' + (idx + 1) + '手为母手。请在棋盘点击目标交点: 空点/己方子→落时痕子(继续对战); 对方子→新时间线');
+    ui.setHint('已回溯到第' + (idx + 1) + '手。请在棋盘点击目标交点: 空点/己方子→落时痕子(继续对战); 对方子→新时间线');
   }
 
   function doBacktrack(coord) {
@@ -176,6 +200,8 @@
     mode = 'play';
     btHand = null;
     ui.btSelectedCoord = null;
+    ui.previewBoard = null;
+    ui.previewLabel = null;
     if (!res.ok) {
       ui.setHint('回溯失败: ' + res.reason, true);
       ui.refresh();
@@ -194,6 +220,8 @@
     mode = 'play';
     btHand = null;
     ui.btSelectedCoord = null;
+    ui.previewBoard = null;
+    ui.previewLabel = null;
     closeBtModal();
     ui.refresh();
     updateHint();
