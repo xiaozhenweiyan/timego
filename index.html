@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>时空围棋 TimeGo</title>
+  <link rel="stylesheet" href="static/style.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <h1>时空围棋 · TimeGo</h1>
+      <div class="subtitle">25×25 · 回溯 · 时痕子 · 时间线分岔 · 毁灭性共振</div>
+    </header>
+
+    <main class="layout">
+      <section class="board-wrap">
+        <canvas id="board" width="600" height="600"></canvas>
+        <div id="hint" class="hint">黑方回合: 点击棋盘落子</div>
+      </section>
+
+      <aside class="sidebar">
+        <div class="panel">
+          <h2>状态</h2>
+          <div id="status"></div>
+        </div>
+
+        <div class="panel">
+          <h2>操作</h2>
+          <div class="btns">
+            <button id="btn-backtrack" type="button">回溯</button>
+            <button id="btn-pass" type="button">弃权</button>
+            <button id="btn-resign" type="button">认输</button>
+            <button id="btn-end" type="button">声明终局</button>
+            <button id="btn-mode" type="button">模式: 人机</button>
+            <button id="btn-new" type="button">新对局</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>着手记录 <span class="tip">(回溯时点击自己下过的手作为母手)</span></h2>
+          <div id="history" class="history"></div>
+        </div>
+
+        <div class="panel">
+          <h2>时间线 <span class="tip">(点击切换查看)</span></h2>
+          <div id="timeline" class="timeline"></div>
+        </div>
+
+        <div class="panel">
+          <h2>事件日志</h2>
+          <div id="log" class="log"></div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- 加载顺序: 引擎 -> AI -> UI -> 主入口 (全局类, 非 ES module, 兼容 file://) -->
+  <script src="static/engine.js"></script>
+  <script src="static/ai.js"></script>
+  <script src="static/ui.js"></script>
+  <script src="static/script.js"></script>
+</body>
+</html>
