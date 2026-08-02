@@ -57,8 +57,12 @@
 
   TimeGoUI.prototype._eventToCoord = function (e) {
     var rect = this.canvas.getBoundingClientRect();
-    var x = e.clientX - rect.left;
-    var y = e.clientY - rect.top;
+    // 关键修正：画布内部分辨率与 CSS 显示尺寸可能不一致（如 max-width:100% 缩放），
+    // 必须把鼠标坐标从 CSS 像素空间换算到画布内部像素空间，否则缩放后点击位置会错位。
+    var scaleX = this.canvas.width / rect.width;
+    var scaleY = this.canvas.height / rect.height;
+    var x = (e.clientX - rect.left) * scaleX;
+    var y = (e.clientY - rect.top) * scaleY;
     var c = Math.round((x - this.margin) / this.cell);
     var crr = Math.round((y - this.margin) / this.cell);
     var r = SIZE - 1 - crr;
