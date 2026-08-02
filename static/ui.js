@@ -150,14 +150,23 @@
       }
     }
 
-    // 查看历史时间线提示
+    // 查看历史时间线提示: 醒目蓝色边框 + 顶部横幅
     if (this.engine.viewId !== this.engine.activeId) {
-      ctx.fillStyle = 'rgba(40,40,40,0.7)';
-      ctx.fillRect(0, 0, W, 22);
+      // 蓝色边框包围整个棋盘, 表示正在查看历史时间线
+      ctx.strokeStyle = '#4a90d9';
+      ctx.lineWidth = 5;
+      ctx.strokeRect(2.5, 2.5, W - 5, H - 5);
+      // 顶部蓝色横幅
+      ctx.fillStyle = 'rgba(74,144,217,0.95)';
+      ctx.fillRect(0, 0, W, 26);
       ctx.fillStyle = '#fff';
-      ctx.font = '12px sans-serif';
+      ctx.font = 'bold 13px sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText('查看时间线 #' + this.engine.viewId + ' (落子仍在活动时间线 #' + this.engine.activeId + ')', 8, 11);
+      ctx.textBaseline = 'middle';
+      ctx.fillText('👁 查看时间线 #' + this.engine.viewId + '（落子仍在活动时间线 #' + this.engine.activeId + '）', 8, 13);
+      ctx.textAlign = 'right';
+      ctx.fillText('点右侧「返回活动时间线」', W - 8, 13);
+      ctx.textBaseline = 'alphabetic';
     }
   };
 
@@ -289,21 +298,101 @@
     this.elHistory.innerHTML = html;
   };
 
+  // 时间线树形可视化: 按父子关系缩进, 每条时间线带迷你棋盘缩略图
   TimeGoUI.prototype._renderTimeline = function () {
     var tls = this.engine.timelines;
-    var html = '';
+    var self = this;
+
+    // 构建父子关系
+    var children = {};
+    var roots = [];
     for (var i = 0; i < tls.length; i++) {
       var t = tls[i];
-      var cls = 'tl-item';
-      if (t.id === this.engine.activeId) cls += ' tl-active';
-      else if (t.frozen && !t.discarded) cls += ' tl-frozen';
-      if (t.discarded) cls += ' tl-discarded';
-      if (t.id === this.engine.viewId) cls += ' tl-view';
-      var status = t.id === this.engine.activeId ? '活动' : (t.discarded ? '已弃' : (t.frozen ? '冻结' : '可查看'));
-      html += '<div class="' + cls + '" data-tl="' + t.id + '"><b>#' + t.id + '</b> ' + status +
-        ' · ' + t.moves.length + '手' + (t.parentId !== null ? ' ←分岔自#' + t.parentId : '') + '</div>';
+      if (t.parentId === null || t.parentId === undefined) {
+        roots.push(t.id);
+      } else {
+        if (!children[t.parentId]) children[t.parentId] = [];
+        children[t.parentId].push(t.id);
+      }
     }
+
+    var html = '<div class="tl-tree">';
+    // 查看非活动时间线时, 顶部显示"返回活动时间线"按钮
+    if (this.engine.viewId !== this.engine.activeId) {
+      html += '<div class="tl-back" data-tl="' + this.engine.activeId + '">⟲ 返回活动时间线 #' + this.engine.activeId + '</div>';
+    }
+    // 深度优先遍历, 渲染树形
+    function walk(id, depth) {
+      var tl = tls[id];
+      var cls = 'tl-item';
+      if (tl.id === self.engine.activeId) cls += ' tl-active';
+      else if (tl.frozen && !tl.discarded) cls += ' tl-frozen';
+      if (tl.discarded) cls += ' tl-discarded';
+      if (tl.id === self.engine.viewId) cls += ' tl-view';
+      var status = tl.id === self.engine.activeId ? '活动' : (tl.discarded ? '已弃' : (tl.frozen ? '冻结' : '可查看'));
+      var forkNote = (tl.parentId !== null && tl.parentId !== undefined)
+        ? '分岔自 #' + tl.parentId + ' 第' + (tl.forkPoint + 1) + '手'
+        : '主时间线';
+      html += '<div class="' + cls + '" data-tl="' + tl.id + '" style="margin-left:' + (depth * 16) + 'px">';
+      html += '<canvas class="tl-thumb" data-tl="' + tl.id + '" width="56" height="56"></canvas>';
+      html += '<div class="tl-meta"><span class="tl-id">#' + tl.id + '</span> ' +
+              '<span class="tl-status">' + status + '</span> · ' + tl.moves.length + '手' +
+              '<br><span class="tl-note">' + forkNote + '</span></div>';
+      html += '</div>';
+      var kids = children[id] || [];
+      for (var k = 0; k < kids.length; k++) walk(kids[k], depth + 1);
+    }
+    for (var r = 0; r < roots.length; r++) walk(roots[r], 0);
+    if (roots.length === 0) html += '<div class="hist-empty">无时间线</div>';
+    html += '</div>';
     this.elTimeline.innerHTML = html;
+
+    // 绘制每个缩略图
+    var nodes = this.elTimeline.querySelectorAll('canvas.tl-thumb');
+    for (var j = 0; j < nodes.length; j++) {
+      var cv = nodes[j];
+      var tid = parseInt(cv.getAttribute('data-tl'), 10);
+      var board = this.engine.getBoardForView(tid);
+      if (!board) continue;
+      this._drawThumb(cv.getContext('2d'), board, cv.width);
+    }
+  };
+
+  // 迷你棋盘缩略图: 在小 canvas 上绘制时间线的最新局面
+  TimeGoUI.prototype._drawThumb = function (ctx, board, size) {
+    var n = SIZE;
+    var step = size / n;
+    // 背景
+    ctx.fillStyle = '#e8c27a';
+    ctx.fillRect(0, 0, size, size);
+    // 棋子 (y 轴翻转: 棋盘 r=0 在底, 画布 y=0 在顶)
+    for (var r = 0; r < n; r++) {
+      for (var c = 0; c < n; c++) {
+        var cell = board[r][c];
+        if (!cell) continue;
+        var x = (c + 0.5) * step;
+        var y = (n - 1 - r + 0.5) * step;
+        if (cell.hole) {
+          ctx.fillStyle = '#1a1a1a';
+          ctx.fillRect(x - step * 0.35, y - step * 0.35, step * 0.7, step * 0.7);
+        } else {
+          ctx.beginPath();
+          ctx.arc(x, y, step * 0.45, 0, Math.PI * 2);
+          if (cell.trace) {
+            // 时痕子: 带颜色光圈
+            ctx.fillStyle = cell.color === 'B' ? '#1aa3ff' : '#ff9a1a';
+          } else {
+            ctx.fillStyle = cell.color === 'B' ? '#000' : '#fff';
+          }
+          ctx.fill();
+          if (cell.color === 'W' || cell.trace) {
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        }
+      }
+    }
   };
 
   TimeGoUI.prototype._renderLog = function () {

@@ -127,18 +127,51 @@ hr { border: none; border-top: 1px dashed #3a4048; margin: 6px 0; }
   flex-direction: column;
   gap: 4px;
 }
+.tl-tree { display: flex; flex-direction: column; gap: 5px; }
+/* 返回活动时间线按钮 */
+.tl-back {
+  padding: 6px 10px;
+  background: #1e3a5f;
+  border: 1px solid #4a90d9;
+  border-radius: 4px;
+  color: #cfe3ff;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  text-align: center;
+}
+.tl-back:hover { background: #2a4a73; }
+/* 树节点: 缩略图 + 文字横向排列 */
 .tl-item {
-  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
   background: #2a2f35;
   border-left: 3px solid #555;
   border-radius: 3px;
   font-size: 12px;
   cursor: pointer;
 }
+.tl-item:hover { background: #353b42; }
 .tl-active { border-left-color: #4caf50; background: #1e3a22; }
 .tl-frozen { border-left-color: #4a90d9; }
 .tl-discarded { border-left-color: #888; opacity: 0.5; }
-.tl-view { outline: 1px solid #ffd98a; }
+.tl-view { outline: 2px solid #ffd98a; outline-offset: 1px; }
+/* 缩略图 */
+.tl-thumb {
+  width: 56px;
+  height: 56px;
+  background: #e8c27a;
+  border-radius: 3px;
+  flex-shrink: 0;
+  image-rendering: pixelated;
+  border: 1px solid #1a1a1a;
+}
+.tl-meta { flex: 1; min-width: 0; line-height: 1.4; }
+.tl-id { font-weight: bold; color: #ffd98a; }
+.tl-status { color: #9ad; }
+.tl-note { color: #888; font-size: 11px; }
 
 .log {
   max-height: 180px;

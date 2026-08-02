@@ -29,6 +29,8 @@
     bindTimeline();
     ui.refresh();
     updateHint();
+    // 暴露调试对象, 方便在控制台探索引擎/测试分叉等
+    window.__timego = { engine: engine, ui: ui, ai: ai };
   }
 
   // ---------- 按钮绑定 ----------
