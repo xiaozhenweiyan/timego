@@ -195,3 +195,55 @@ hr { border: none; border-top: 1px dashed #3a4048; margin: 6px 0; }
   .layout { flex-direction: column; }
   .sidebar { max-width: 100%; }
 }
+
+/* ===== 回溯选择弹窗 ===== */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+}
+.modal {
+  width: 460px; max-width: 92vw; max-height: 80vh;
+  background: #1b1f23; color: #e6e6e6;
+  border: 1px solid #3a4048; border-radius: 8px;
+  display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+}
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid #2a2f35;
+}
+.modal-head h3 { margin: 0; font-size: 16px; color: #ffd98a; }
+.modal-close {
+  background: none; border: none; color: #aaa;
+  font-size: 22px; cursor: pointer; line-height: 1; padding: 0 4px;
+}
+.modal-close:hover { color: #fff; }
+.modal-sub { padding: 8px 16px; font-size: 12px; color: #9ad; border-bottom: 1px solid #2a2f35; }
+.bt-move-list { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+/* 单条着手: 第N手 · 黑/白 · 坐标 */
+.bt-move {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; background: #2a2f35; border-radius: 4px;
+  border-left: 3px solid #555; font-size: 13px; cursor: pointer;
+}
+.bt-move:hover { background: #353b42; }
+.bt-move-disabled { opacity: 0.4; cursor: not-allowed; }
+.bt-move-disabled:hover { background: #2a2f35; }
+.bt-move-sel { border-left-color: #4caf50; background: #1e3a22; outline: 2px solid #4caf50; }
+.bt-move-no { color: #ffd98a; font-weight: bold; min-width: 52px; }
+.bt-move-stone { width: 16px; height: 16px; border-radius: 50%; border: 1px solid #555; flex-shrink: 0; }
+.bt-move-stone.B { background: #000; }
+.bt-move-stone.W { background: #fff; }
+.bt-move-coord { font-family: "Menlo","Consolas",monospace; }
+.bt-move-note { color: #888; font-size: 11px; margin-left: auto; }
+.bt-move-locked { color: #888; }
+.modal-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 16px; border-top: 1px solid #2a2f35;
+}
+.bt-tip { font-size: 12px; color: #cfcfcf; flex: 1; }
+.btn { padding: 6px 14px; border-radius: 4px; border: 1px solid #3a4048; background: #2a2f35; color: #e6e6e6; cursor: pointer; font-size: 13px; }
+.btn:hover { background: #353b42; }
+.btn-ghost { background: transparent; }

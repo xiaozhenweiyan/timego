@@ -26,6 +26,7 @@
     ui.onBoardClick = onBoardClick;
     bindButtons();
     bindHistory();
+    bindBtModal();
     bindTimeline();
     ui.refresh();
     updateHint();
@@ -52,14 +53,20 @@
   }
 
   function bindHistory() {
-    $('history').addEventListener('click', function (e) {
+    // 着手记录仅用于查看; 回溯母手选择已移至弹窗
+  }
+
+  // 回溯弹窗事件: 点击某手选中, 关闭/取消按钮
+  function bindBtModal() {
+    $('bt-moves').addEventListener('click', function (e) {
       var el = e.target.closest('[data-idx]');
       if (!el) return;
+      if (el.classList.contains('bt-move-disabled')) return;
       var idx = parseInt(el.getAttribute('data-idx'), 10);
-      if (mode === 'bt-select-hand') {
-        selectBacktrackHand(idx);
-      }
+      selectBacktrackHand(idx);
     });
+    $('bt-close').addEventListener('click', cancelBacktrack);
+    $('bt-cancel').addEventListener('click', cancelBacktrack);
   }
 
   function bindTimeline() {
@@ -102,28 +109,65 @@
     afterMove(null);
   }
 
-  // ---------- 回溯流程 ----------
+  // ---------- 回溯流程 (弹窗选择母手) ----------
   function startBacktrack() {
     if (engine.gameOver) { ui.setHint('对局已结束', true); return; }
     if (engine.mode === 'ai' && engine.player === 'W') { ui.setHint('白方回合不可回溯', true); return; }
     if (ai.thinking) { ui.setHint('白方思考中...', true); return; }
+    if (!engine.canBacktrack()) { ui.setHint('回溯权不足且债务已满', true); return; }
     var bt = engine.getBacktrackableMoves();
     if (bt.length === 0) { ui.setHint('没有可回溯的自己下过的手', true); return; }
-    if (!engine.canBacktrack()) { ui.setHint('回溯权不足且债务已满', true); return; }
-    mode = 'bt-select-hand';
     btHand = null;
-    ui.setHint('回溯: 请在右侧「着手记录」中点击一个你下过的手(母手)');
+    openBtModal();
   }
 
+  // 打开回溯选择弹窗: 列出活动时间线所有着手, 从上到下显示第几手
+  function openBtModal() {
+    var moves = engine.active.moves;
+    document.getElementById('bt-tl-id').textContent = '#' + engine.activeId;
+    var html = '';
+    for (var i = 0; i < moves.length; i++) {
+      var m = moves[i];
+      // 只有自己下过且未锁定的手可选
+      var selectable = (m.color === engine.player && !m.isLocked);
+      var cls = 'bt-move' + (selectable ? '' : ' bt-move-disabled') + (i === btHand ? ' bt-move-sel' : '');
+      var label = m.coord ? TimeGoEngine.coordToLabel(m.coord.r, m.coord.c) : (m.type === 'pass' ? '弃权' : '—');
+      var note = '';
+      if (m.type === 'backtrack') note = '回溯';
+      else if (m.type === 'fork') note = '分岔';
+      if (m.isLocked) note += (note ? ' ' : '') + '🔒锁定';
+      html += '<div class="' + cls + '" data-idx="' + i + '">' +
+        '<span class="bt-move-no">第' + (i + 1) + '手</span>' +
+        '<span class="bt-move-stone ' + m.color + '"></span>' +
+        '<span class="bt-move-coord">' + label + '</span>' +
+        (note ? '<span class="bt-move-note">' + note + '</span>' : '') +
+        '</div>';
+    }
+    if (!html) html = '<div class="hist-empty">该时间线尚无着手</div>';
+    document.getElementById('bt-moves').innerHTML = html;
+    document.getElementById('bt-tip').textContent = '点击上方任意一手作为回溯母手';
+    document.getElementById('bt-modal').style.display = 'flex';
+    ui.setHint('回溯: 请在弹窗中选择一个你下过的手作为母手');
+  }
+
+  function closeBtModal() {
+    document.getElementById('bt-modal').style.display = 'none';
+  }
+
+  // 在弹窗中选中某手作为母手
   function selectBacktrackHand(idx) {
     var moves = engine.active.moves;
     var m = moves[idx];
-    if (!m) { ui.setHint('母手无效', true); return; }
-    if (m.color !== engine.player) { ui.setHint('只能回溯自己下过的手', true); return; }
-    if (m.isLocked) { ui.setHint('该手已锁定', true); return; }
+    if (!m) return;
+    if (m.color !== engine.player) { document.getElementById('bt-tip').textContent = '只能回溯自己下过的手'; return; }
+    if (m.isLocked) { document.getElementById('bt-tip').textContent = '该手已锁定, 不可回溯'; return; }
     btHand = idx;
+    // 选中后关闭弹窗, 进入目标选择模式
+    closeBtModal();
     mode = 'bt-select-target';
-    ui.setHint('已选母手第' + (idx + 1) + '手。请在棋盘上点击目标交点(空点/己方子→时痕子; 对方子→时间线分岔)');
+    ui.btSelectedCoord = m.coord ? { r: m.coord.r, c: m.coord.c } : null;
+    ui.refresh();
+    ui.setHint('已选第' + (idx + 1) + '手为母手。请在棋盘点击目标交点: 空点/己方子→落时痕子(继续对战); 对方子→新时间线');
   }
 
   function doBacktrack(coord) {
@@ -131,10 +175,17 @@
     var res = engine.timeBack(btHand, coord);
     mode = 'play';
     btHand = null;
+    ui.btSelectedCoord = null;
     if (!res.ok) {
       ui.setHint('回溯失败: ' + res.reason, true);
       ui.refresh();
       return;
+    }
+    // 根据结果给用户清晰反馈
+    if (res.fork) {
+      ui.setHint('时间线分岔! 已切到新时间线 #' + res.newTimelineId + ', 继续对战', false);
+    } else {
+      ui.setHint('已落时痕子, 在活动时间线继续对战', false);
     }
     afterMove(coord);
   }
@@ -142,6 +193,9 @@
   function cancelBacktrack() {
     mode = 'play';
     btHand = null;
+    ui.btSelectedCoord = null;
+    closeBtModal();
+    ui.refresh();
     updateHint();
   }
 
@@ -215,8 +269,7 @@
 
   function updateHint() {
     if (engine.gameOver) { ui.setHint('对局结束', false); return; }
-    if (mode === 'bt-select-hand') { ui.setHint('回溯: 请在右侧选择一个你下过的母手'); return; }
-    if (mode === 'bt-select-target') { ui.setHint('回溯: 请在棋盘点击目标交点'); return; }
+    if (mode === 'bt-select-target') { ui.setHint('回溯: 请在棋盘点击目标交点 (空点/己方子→时痕子; 对方子→新时间线)'); return; }
     if (engine.mode === 'ai' && engine.player === 'W') { ui.setHint('白方(AI)思考中...'); return; }
     var p = engine.player === 'B' ? '黑方' : '白方';
     ui.setHint(p + '回合: 点击棋盘落子, 或使用右侧按钮(回溯/弃权/认输/声明终局)');

@@ -25,6 +25,7 @@
     this.lastMove = null;      // {r,c}
     this.onBoardClick = null;  // 由 script 注入
     this.btSelectedHand = null; // 回溯流程选中的母手索引
+    this.btSelectedCoord = null; // 回溯母手坐标 (棋盘上紫色标记)
 
     this._bindEvents();
   }
@@ -137,6 +138,22 @@
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(lx, ly, 5, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // 回溯母手标记: 紫色十字圈, 提示当前选中的母手位置
+    if (this.btSelectedCoord) {
+      var bc = this.btSelectedCoord;
+      var bx = this._x(bc.c), by = this._y(bc.r);
+      ctx.strokeStyle = '#b14dff';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(bx, by, this.cell * 0.5, 0, Math.PI * 2);
+      ctx.stroke();
+      // 紫色十字
+      ctx.beginPath();
+      ctx.moveTo(bx - this.cell * 0.5, by); ctx.lineTo(bx + this.cell * 0.5, by);
+      ctx.moveTo(bx, by - this.cell * 0.5); ctx.lineTo(bx, by + this.cell * 0.5);
       ctx.stroke();
     }
 

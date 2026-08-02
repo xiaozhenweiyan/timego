@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>时空围棋 TimeGo</title>
-  <link rel="stylesheet" href="static/style.css?v=3" />
+  <link rel="stylesheet" href="static/style.css?v=4" />
 </head>
 <body>
   <div id="app">
@@ -55,10 +55,26 @@
     </main>
   </div>
 
+  <!-- 回溯选择弹窗: 列出活动时间线所有着手, 从上到下显示第几手 -->
+  <div id="bt-modal" class="modal-overlay" style="display:none">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>选择回溯母手</h3>
+        <button id="bt-close" class="modal-close" type="button">×</button>
+      </div>
+      <div class="modal-sub">活动时间线 <span id="bt-tl-id">#0</span> · 仅可选择你自己下过且未锁定的手</div>
+      <div id="bt-moves" class="bt-move-list"></div>
+      <div class="modal-foot">
+        <div id="bt-tip" class="bt-tip">点击上方任意一手作为回溯母手</div>
+        <button id="bt-cancel" class="btn btn-ghost" type="button">取消</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 加载顺序: 引擎 -> AI -> UI -> 主入口 (全局类, 非 ES module, 兼容 file://) -->
-  <script src="static/engine.js?v=3"></script>
-  <script src="static/ai.js?v=3"></script>
-  <script src="static/ui.js?v=3"></script>
-  <script src="static/script.js?v=3"></script>
+  <script src="static/engine.js?v=4"></script>
+  <script src="static/ai.js?v=4"></script>
+  <script src="static/ui.js?v=4"></script>
+  <script src="static/script.js?v=4"></script>
 </body>
 </html>
